@@ -1,6 +1,6 @@
 use regex::Regex;
 use std::collections::HashMap;
-const mandatory: [&'static str; 7] = ["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"];
+const MANDATORY: [&'static str; 7] = ["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"];
 
 pub fn solve1(input: &[String]) {
     let re1: Regex = Regex::new(r"^#[0-9a-f]{6}$").unwrap();
@@ -18,7 +18,7 @@ pub fn solve1(input: &[String]) {
                     (k, v)
                 })
                 .collect();
-            if !mandatory.iter().all(|k| seen.contains_key(k)) {
+            if !MANDATORY.iter().all(|k| seen.contains_key(k)) {
                 return false;
             }
             let byr = seen["byr"].parse::<i32>().unwrap();
