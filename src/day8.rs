@@ -7,6 +7,15 @@ pub enum Instruction {
     Nop(i32),
 }
 
+impl Instruction {
+    fn step(&self) -> i32 {
+        match self {
+            Instruction::Jmp(j) => *j,
+            _ => 1,
+        }
+    }
+}
+
 fn parse_instruction(line: &str) -> Instruction {
     let mut split = line.split(" ");
     let instr = split.next().unwrap();
@@ -30,12 +39,11 @@ pub fn solve1(input: &[String]) {
             return;
         }
         seen.insert(i);
-        match instructions[i as usize] {
-            Instruction::Acc(x) => acc += x,
-            Instruction::Jmp(j) => i += j - 1,
-            Instruction::Nop(_) => {}
+        let instruction = instructions[i as usize];
+        if let Instruction::Acc(x) = instruction {
+            acc += x;
         }
-        i += 1;
+        i += instruction.step();
     }
 }
 
@@ -49,39 +57,45 @@ fn swap_instruction(i: Instruction) -> Instruction {
 
 pub fn solve2(input: &[String]) {
     let mut instructions: Vec<_> = input.iter().map(|s| parse_instruction(&s)).collect();
-    for i in (0..instructions.len()) {
-        instructions[i] = swap_instruction(instructions[i]);
-        match terminates(&instructions) {
-            (false, _) => {}
-            (true, ret) => {
-                println!("{}", ret);
-                return;
-            }
-        }
-        instructions[i] = swap_instruction(instructions[i]);
+    let mut comefrom: HashMap<i32, Vec<i32>> = HashMap::new();
+    for (i, instruction) in instructions.iter().copied().enumerate() {
+        let dest = i as i32 + instruction.step();
+        comefrom.entry(dest).or_insert_with(Vec::new).push(i as i32);
     }
-}
-
-fn terminates(instrs: &[Instruction]) -> (bool, i32) {
-    let mut seen = HashSet::new();
+    let mut can_reach_end: HashSet<i32> = HashSet::new();
+    let mut stack = vec![instructions.len() as i32];
+    while let Some(i) = stack.pop() {
+        if can_reach_end.contains(&i) {
+            continue;
+        }
+        can_reach_end.insert(i);
+        if let Some(can_reach) = comefrom.get(&(i as i32)) {
+            stack.extend(can_reach.iter().copied());
+        }
+    }
     let mut i = 0i32;
     let mut acc = 0;
     loop {
-        if seen.contains(&i) {
-            return (false, acc);
+        let instruction = &mut instructions[i as usize];
+        let swapped_next_i = i + swap_instruction(*instruction).step();
+        if can_reach_end.contains(&swapped_next_i) {
+            *instruction = swap_instruction(*instruction);
+            break;
         }
-        seen.insert(i);
-        if i as usize > instrs.len() {
-            return (false, acc);
+        if let Instruction::Acc(x) = instruction {
+            acc += *x;
         }
-        if i as usize == instrs.len() {
-            return (true, acc);
+        i += instruction.step();
+    }
+    loop {
+        if i == instructions.len() as i32 {
+            println!("{}", acc);
+            return;
         }
-        match instrs[i as usize] {
-            Instruction::Acc(x) => acc += x,
-            Instruction::Jmp(j) => i += j - 1,
-            Instruction::Nop(_) => {}
+        let instruction = instructions[i as usize];
+        if let Instruction::Acc(x) = instruction {
+            acc += x;
         }
-        i += 1;
+        i += instruction.step();
     }
 }
