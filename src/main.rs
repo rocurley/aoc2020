@@ -1,8 +1,10 @@
 use aoc2020::*;
 use argh::FromArgs;
+use cpuprofiler::PROFILER;
 use std::fs;
 use std::io;
 use std::io::BufRead;
+use std::time::Instant;
 
 #[derive(FromArgs)]
 /// Reach new heights.
@@ -14,11 +16,25 @@ struct Args {
     /// path for the input
     #[argh(positional)]
     input_path: String,
+
+    /// enable profiling
+    #[argh(switch)]
+    profile: bool,
 }
 
 fn main() {
     let args: Args = argh::from_env();
     let file = fs::File::open(args.input_path).expect("couldn't read input");
+    let profiler = if args.profile {
+        let mut profiler = PROFILER.lock().unwrap();
+        profiler
+            .start(format!("profiling/{}", args.problem.as_str()))
+            .unwrap();
+        let now = Instant::now();
+        Some((profiler, now))
+    } else {
+        None
+    };
     let input = io::BufReader::new(file)
         .lines()
         .collect::<io::Result<Vec<String>>>()
@@ -52,6 +68,14 @@ fn main() {
             day8::solve1(&input);
             day8::solve2(&input);
         }
+        "day9" => {
+            day9::solve2(&input);
+        }
         _ => panic!("Unexpected problem name"),
+    }
+    if let Some((mut p, start)) = profiler {
+        let t = start.elapsed();
+        p.stop().unwrap();
+        println!("{:?}", t);
     }
 }
