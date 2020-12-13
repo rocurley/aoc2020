@@ -84,7 +84,8 @@ fn main() {
             day12::solve2(&input);
         }
         "day13" => {
-            day13::solve1(&input);
+            //day13::solve1(&input);
+            day13::solve2(&input);
         }
         _ => panic!("Unexpected problem name"),
     }
