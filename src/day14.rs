@@ -28,10 +28,7 @@ fn bits(x: u64) -> Vec<bool> {
     out
 }
 
-fn addresses<I: Iterator<Item = char>, I2: Iterator<Item = bool>>(
-    mut mask: I,
-    mut addr: I2,
-) -> Vec<u64> {
+fn addresses<I: Iterator<Item = char>, I2: Iterator<Item = bool>>(mask: I, addr: I2) -> Vec<u64> {
     let mut out = vec![0];
     for (m, a) in mask.zip(addr) {
         match m {
