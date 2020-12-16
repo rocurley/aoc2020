@@ -58,14 +58,12 @@ pub fn solve2(input: &[String]) {
         .collect();
     let mut confirmed = Vec::new();
     while possibilities.len() > 0 {
-        let mut iter = possibilities.iter().enumerate();
-        let (name, i, field_ix) = loop {
-            let (i, (name, options)) = iter.next().unwrap();
-            if options.len() == 1 {
-                break (name.clone(), i, options[0]);
-            }
-        };
-        possibilities.swap_remove(i);
+        let i = possibilities
+            .iter()
+            .position(|(_, options)| options.len() == 1)
+            .unwrap();
+        let (name, options) = possibilities.swap_remove(i);
+        let field_ix = options[0];
         confirmed.push((name, field_ix));
         for fields in possibilities.iter_mut() {
             fields.1.retain(|i| *i != field_ix);
