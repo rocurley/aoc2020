@@ -98,6 +98,9 @@ fn main() {
             day16::solve1(&input);
             day16::solve2(&input);
         }
+        "day17" => {
+            day17::solve1(&input);
+        }
         _ => panic!("Unexpected problem name"),
     }
     if let Some((mut p, start)) = profiler {
