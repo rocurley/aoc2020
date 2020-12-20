@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct Tile {
     id: usize,
@@ -26,15 +25,6 @@ impl Tile {
             Dir::Right => &self.right,
             Dir::Bottom => &self.bottom,
         }
-    }
-}
-
-fn normalize(s: &str) -> String {
-    let rev = s.chars().rev().collect::<String>();
-    if rev.as_str() < s {
-        rev
-    } else {
-        s.to_owned()
     }
 }
 
@@ -82,21 +72,24 @@ pub fn solve1(input: &[String]) {
             }
         })
         .collect();
-    let mut edge_counts: HashMap<String, Vec<&Tile>> = HashMap::new();
-    for tile in tiles.iter() {
-        for edge in &[&tile.left, &tile.right, &tile.top, &tile.bottom] {
-            edge_counts
-                .entry(normalize(edge))
-                .or_insert(Vec::new())
-                .push(&tile);
+    let mut tiles_by_edge: HashMap<String, Vec<Tile>> = HashMap::new();
+    for tile_outer in tiles.iter() {
+        for tile in vec![tile_outer.clone(), v_flip(tile_outer.clone())] {
+            for d in DIRECTIONS.iter().copied() {
+                let edge = tile.get(d).to_owned();
+                tiles_by_edge
+                    .entry(edge)
+                    .or_insert(Vec::new())
+                    .push(tile.clone());
+            }
         }
     }
     let mut corners: Vec<Tile> = tiles
         .iter()
-        .filter(|tile| {
-            (&[&tile.left, &tile.right, &tile.top, &tile.bottom])
+        .filter(|&tile| {
+            ([&tile.left, &tile.right, &tile.top, &tile.bottom])
                 .iter()
-                .filter(|edge| edge_counts[&normalize(edge)].len() == 1)
+                .filter(|edge| tiles_by_edge[**edge].len() == 1)
                 .count()
                 == 2
         })
@@ -104,43 +97,21 @@ pub fn solve1(input: &[String]) {
         .collect();
     let id_prod: usize = corners.iter().map(|tile| tile.id).product();
     dbg!(id_prod);
-    let mut edges: Vec<Tile> = tiles
-        .iter()
-        .filter(|tile| {
-            (&[&tile.left, &tile.right, &tile.top, &tile.bottom])
-                .iter()
-                .filter(|edge| edge_counts[&normalize(edge)].len() == 1)
-                .count()
-                == 1
-        })
-        .cloned()
-        .collect();
-    let mut middle: Vec<Tile> = tiles
-        .iter()
-        .filter(|tile| {
-            (&[&tile.left, &tile.right, &tile.top, &tile.bottom])
-                .iter()
-                .filter(|edge| edge_counts[&normalize(edge)].len() == 1)
-                .count()
-                == 0
-        })
-        .cloned()
-        .collect();
     let top_left = corners.pop().unwrap();
     let top_left_dirs: Vec<Dir> = DIRECTIONS
         .iter()
         .copied()
-        .filter(|dir| edge_is_unique(top_left.get(*dir), &edge_counts))
+        .filter(|dir| edge_is_unique(top_left.get(*dir), &tiles_by_edge))
         .collect();
     let top_left = rotate_to_match(top_left_dirs[0], top_left_dirs[1], top_left);
     let mut top_edge = vec![top_left];
     while let Some((tile, tile_left_dir)) =
-        get_matching_tile(top_edge.last().unwrap(), Dir::Right, &edge_counts)
+        get_matching_tile(top_edge.last().unwrap(), Dir::Right, &tiles_by_edge)
     {
         let tile_top_dir = DIRECTIONS
             .iter()
             .copied()
-            .filter(|d| edge_is_unique(tile.get(*d), &edge_counts))
+            .filter(|d| edge_is_unique(tile.get(*d), &tiles_by_edge))
             .filter(|d| !is_opposite(*d, tile_left_dir))
             .nth(0)
             .unwrap();
@@ -150,14 +121,14 @@ pub fn solve1(input: &[String]) {
     loop {
         let prior_row = grid.last().unwrap();
         let (first, first_top_dir) =
-            match get_matching_tile(&prior_row[0], Dir::Bottom, &edge_counts) {
+            match get_matching_tile(&prior_row[0], Dir::Bottom, &tiles_by_edge) {
                 Some(pair) => pair,
                 None => break,
             };
         let first_left_dir = DIRECTIONS
             .iter()
             .copied()
-            .filter(|d| edge_is_unique(first.get(*d), &edge_counts))
+            .filter(|d| edge_is_unique(first.get(*d), &tiles_by_edge))
             .filter(|d| !is_opposite(*d, first_top_dir))
             .nth(0)
             .unwrap();
@@ -166,15 +137,12 @@ pub fn solve1(input: &[String]) {
         for top_tile in prior_row[1..].iter() {
             let mut current_grid = grid.clone();
             current_grid.push(row.clone());
-            for row in current_grid {
-                let ids: Vec<usize> = row.into_iter().map(|t| t.id).collect();
-                //dbg!(ids);
-            }
 
             let left_tile = row.last().unwrap();
-            let (tile, left_dir) = get_matching_tile(left_tile, Dir::Right, &edge_counts).unwrap();
+            let (tile, left_dir) =
+                get_matching_tile(left_tile, Dir::Right, &tiles_by_edge).unwrap();
             let (tile_dup, top_dir) =
-                get_matching_tile(top_tile, Dir::Bottom, &edge_counts).unwrap();
+                get_matching_tile(top_tile, Dir::Bottom, &tiles_by_edge).unwrap();
             assert_eq!(tile, tile_dup);
             let tile = rotate_to_match(left_dir, top_dir, tile);
             row.push(tile);
@@ -208,7 +176,7 @@ pub fn solve1(input: &[String]) {
     let sea_monsters: Vec<_> = (0..4)
         .map(|r| {
             let mut m = sea_monster_bmp.clone();
-            for _ in (0..r) {
+            for _ in 0..r {
                 m = rotate_bitmap_ccw(m);
             }
             m
@@ -243,7 +211,6 @@ pub fn solve1(input: &[String]) {
             }
         }
     }
-    dbg!(&not_in_sea_monster);
     let ans = not_in_sea_monster
         .into_iter()
         .flat_map(|row| row.into_iter())
@@ -252,27 +219,22 @@ pub fn solve1(input: &[String]) {
     dbg!(ans);
 }
 
-fn get_matching_tile(t: &Tile, d: Dir, index: &HashMap<String, Vec<&Tile>>) -> Option<(Tile, Dir)> {
+fn get_matching_tile(t: &Tile, d: Dir, index: &HashMap<String, Vec<Tile>>) -> Option<(Tile, Dir)> {
     //dbg!(t, d);
-    let e = normalize(t.get(d));
-    let matching = dbg!(&index[&e]);
-    let matching_tile = matching
-        .iter()
-        .copied()
-        .filter(|t2| t2.id != t.id)
-        .nth(0)?
-        .clone();
+    let e = t.get(d);
+    let matching = &index[&e.to_owned()];
+    let matching_tile = matching.iter().filter(|t2| t2.id != t.id).nth(0)?.clone();
     let dir = DIRECTIONS
         .iter()
         .copied()
-        .filter(|d| e == normalize(matching_tile.get(*d)))
+        .filter(|d| e == matching_tile.get(*d))
         .nth(0)
         .unwrap();
     Some((matching_tile, dir))
 }
 
-fn edge_is_unique(edge: &str, edge_counts: &HashMap<String, Vec<&Tile>>) -> bool {
-    edge_counts[normalize(edge).as_str()].len() == 1
+fn edge_is_unique(edge: &str, tiles_by_edge: &HashMap<String, Vec<Tile>>) -> bool {
+    tiles_by_edge[edge].len() == 1
 }
 
 fn rotate_bitmap_ccw(bmp: Vec<Vec<bool>>) -> Vec<Vec<bool>> {
@@ -299,13 +261,18 @@ fn rotate_ccw(mut t: Tile, count: usize) -> Tile {
     }
     t
 }
+
+fn rev_str(s: &str) -> String {
+    s.chars().rev().collect()
+}
+
 fn v_flip(t: Tile) -> Tile {
     Tile {
         id: t.id,
-        top: t.bottom,
-        left: t.left,
-        bottom: t.top,
-        right: t.right,
+        top: rev_str(&t.bottom),
+        left: rev_str(&t.left),
+        bottom: rev_str(&t.top),
+        right: rev_str(&t.right),
         interior: t.interior.into_iter().rev().collect(),
     }
 }
