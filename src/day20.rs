@@ -53,7 +53,7 @@ pub fn solve1(input: &[String]) {
                 .unwrap()
                 .parse()
                 .unwrap();
-            let top = tile[1].clone();
+            let top = tile[1].chars().rev().collect();
             let bottom = tile[tile.len() - 1].clone();
             let left: String = tile[1..]
                 .iter()
@@ -61,6 +61,7 @@ pub fn solve1(input: &[String]) {
                 .collect();
             let right: String = tile[1..]
                 .iter()
+                .rev()
                 .map(|line| line.chars().last().unwrap())
                 .collect();
             let interior = tile[2..tile.len() - 1]

@@ -1,5 +1,7 @@
 use aoc2020::*;
 use argh::FromArgs;
+
+#[cfg(feature = "profiler")]
 use cpuprofiler::PROFILER;
 use std::fs;
 use std::io;
@@ -25,6 +27,7 @@ struct Args {
 fn main() {
     let args: Args = argh::from_env();
     let file = fs::File::open(args.input_path).expect("couldn't read input");
+    #[cfg(feature = "profiler")]
     let profiler = if args.profile {
         let mut profiler = PROFILER.lock().unwrap();
         profiler
@@ -114,6 +117,7 @@ fn main() {
         }
         _ => panic!("Unexpected problem name"),
     }
+    #[cfg(feature = "profiler")]
     if let Some((mut p, start)) = profiler {
         let t = start.elapsed();
         p.stop().unwrap();
